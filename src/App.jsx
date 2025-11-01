@@ -1,10 +1,16 @@
+// src/App.jsx
 import React from "react";
-import "./App.css"; // make sure this exists
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import "./App.css"; // keep your styles
+
+// Pages (create these files as shown earlier)
+import UploadPage from "./pages/UploadPage";
+import ResultsPage from "./pages/ResultsPage";
 
 function App() {
   return (
-    <div>
-      {/* 🔹 Top Bar */}
+    <BrowserRouter>
+      {/* 🔹 Top Bar (your original styling) */}
       <header
         style={{
           backgroundColor: "#7C3AED",
@@ -21,16 +27,19 @@ function App() {
           zIndex: 10,
         }}
       >
-        Hackathon X-Ray
+        <Link to="/" style={{ color: "white", textDecoration: "none" }}>
+          Hackathon X-Ray
+        </Link>
       </header>
 
-      {/* 🔹 Main Content */}
-      <div style={{ textAlign: "center", marginTop: "6rem" }}>
-        <h1>Welcome to Hackathon X-Ray</h1>
-        <p>Your AI-powered medical imaging app starts here.</p>
-        <button> Upload X-Ray</button>
-      </div>
-    </div>
+      {/* 🔹 Main Content (router outlet) */}
+      <main style={{ marginTop: "6rem" }}>
+        <Routes>
+          <Route path="/" element={<UploadPage />} />
+          <Route path="/results/:id" element={<ResultsPage />} />
+        </Routes>
+      </main>
+    </BrowserRouter>
   );
 }
 
