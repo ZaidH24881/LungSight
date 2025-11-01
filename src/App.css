@@ -11,7 +11,7 @@
 
 /* Base */
 *{box-sizing:border-box}
-html,body,#root{height:100%;width:100%;overflow:hidden}
+html,body,#root{height:100%;width:100%;overflow:auto}
 body{
   margin:0;
   background:
@@ -27,6 +27,45 @@ body{
     height:auto;
     overflow:auto;
   }
+}
+
+/* Results page layout */
+.results-grid{
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+  align-items: start;
+}
+.panel-card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+}
+.left-panel{ overflow: auto; max-height: calc(100vh - 160px); }
+.left-panel img{ display:block; width:100%; height:100%; }
+.right-panel{ display:grid; gap:1rem; }
+.impression-card{ background: linear-gradient(90deg, rgba(106,13,173,0.06), transparent); }
+.actions-card{ display:flex; gap:8px; justify-content:flex-start; align-items:center; }
+
+@media (max-width: 768px){
+  .results-grid{ grid-template-columns: 1fr; }
+  .left-panel{ max-height: none; }
+  .panel-card{ padding: 10px; }
+}
+
+.comparison-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.compare-card{ height: 100%; overflow: hidden; }
+.compare-card img{ width:100%; height:100%; object-fit:contain }
+
+@media (max-width: 768px){
+  .comparison-grid{ grid-template-columns: 1fr; }
 }
 
 /* Center the app content */

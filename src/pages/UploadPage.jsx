@@ -19,8 +19,11 @@ export default function UploadPage(){
       <section className="hero">
         <h1>Hackathon X-Ray</h1>
         <p>
-          AI-assisted chest X-ray analysis for faster triage and clearer insights.
-          Upload a scan to receive model highlights, confidence scores, and a structured report — all in seconds.
+          Quickly analyze chest X-rays with an explainable, clinician-oriented assistant.
+          Upload a de-identified scan to get model-identified findings, confidence scores, and localization heatmaps you can review and export.
+        </p>
+        <p style={{ color: 'var(--muted)', marginTop: 12 }}>
+          Built for rapid triage: results are presented clearly with highlighted regions, a concise impression, and easy export options. Data stays local while you test — no PHI is uploaded in this demo.
         </p>
       </section>
 
