@@ -11,7 +11,7 @@
 
 /* Base */
 *{box-sizing:border-box}
-html,body,#root{height:100%}
+html,body,#root{height:100%;width:100%;overflow:hidden}
 body{
   margin:0;
   background:
@@ -20,6 +20,13 @@ body{
     var(--bg);
   color:var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+@media (max-width: 768px) {
+  html,body,#root{
+    height:auto;
+    overflow:auto;
+  }
 }
 
 /* Center the app content */

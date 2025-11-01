@@ -1,7 +1,22 @@
 export default function HeatmapOverlay({ imageUrl, findings = [] }) {
     return (
-        <div style={{ position: "relative", width: "100%", overflow: "hidden" }}>
-            <img src={imageUrl} alt="Chest X-Ray" style={{ width: "100%", display: "block" }} />
+        <div style={{ 
+            position: "relative", 
+            width: "100%", 
+            maxWidth: "100%",
+            overflow: "hidden",
+            aspectRatio: "1" // This assumes a square image, adjust if needed
+        }}>
+            <img 
+                src={imageUrl} 
+                alt="Chest X-Ray" 
+                style={{ 
+                    width: "100%", 
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block" 
+                }} 
+            />
             {findings.map((f, i) => (f.localization || []).map((b, j) => (
                 <div key={`${i}-${j}`} title={`${f.name} (${Math.round((f.confidence || 0) * 100)}%)`}
                     style={{

@@ -10,11 +10,34 @@ export default function ResultsPage() {
     const { imageUrl, report } = state;
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1rem", padding: "1rem" }}>
-            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+        <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+            gap: "1rem", 
+            padding: "1rem",
+            maxHeight: "100vh",
+            overflow: "hidden",
+            '@media (max-width: 768px)': {
+                gridTemplateColumns: "1fr",
+                maxHeight: "none",
+                overflow: "auto"
+            }
+        }}>
+            <div style={{ 
+                border: "1px solid #eee", 
+                borderRadius: 12, 
+                padding: 12,
+                maxHeight: "calc(100vh - 2rem)",
+                overflow: "auto"
+            }}>
                 <HeatmapOverlay imageUrl={imageUrl} findings={report.findings} />
             </div>
-            <div style={{ display: "grid", gap: "1rem" }}>
+            <div style={{ 
+                display: "grid", 
+                gap: "1rem",
+                maxHeight: "calc(100vh - 2rem)",
+                overflow: "auto"
+            }}>
                 <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
                     <h2 style={{ marginTop: 0 }}>Impression</h2>
                     <p><strong>Triage:</strong> {report.triage}</p>
