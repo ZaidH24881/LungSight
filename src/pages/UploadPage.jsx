@@ -9,9 +9,11 @@ export default function UploadPage(){
     setFile(e.target.files?.[0] ?? null);
   }
   function onAnalyze(){
-    // TODO: upload & get real ID
+    if (!file) return;
     const fakeId = Date.now().toString();
-    navigate(`/results/${fakeId}`);
+    const objectUrl = URL.createObjectURL(file);
+    // Pass imageUrl and file info via router state
+    navigate(`/results/${fakeId}`, { state: { imageUrl: objectUrl, fileName: file.name } });
   }
 
   return (

@@ -6,28 +6,38 @@ import ReportActions from "../ui/ReportActions";
 
 export default function ResultsPage() {
     const { state } = useLocation(); // { id, imageUrl, report }
-    const [data, setData] = useState(state || null);
+    const [data, setData] = useState(state && state.imageUrl ? {
+        imageUrl: state.imageUrl,
+        fileName: state.fileName,
+        report: null,
+        id: state.id || null
+    } : null);
     const [loading, setLoading] = useState(false);
     const [comparison, setComparison] = useState(null);
     const fileInputRef = useRef(null);
 
     // If router didn't pass state (working offline / waiting backend), load mock report
     useEffect(() => {
-        if (data) return;
+        // If we already have report, don't fetch
+        if (data && data.report) return;
         setLoading(true);
         fetch("/mock-report.json")
             .then((r) => r.json())
             .then((json) => {
-                // adapt shape to { imageUrl, report }
-                const adapted = { imageUrl: json.imageUrl, report: json.report, id: json.id };
-                setData(adapted);
+                setData(prev => ({
+                    ...prev,
+                    report: json.report,
+                    // Only use mock imageUrl if we don't already have one (i.e., not user upload)
+                    imageUrl: prev && prev.imageUrl ? prev.imageUrl : json.imageUrl,
+                    id: prev && prev.id ? prev.id : json.id
+                }));
             })
             .catch((err) => console.warn("Failed to load mock report:", err))
             .finally(() => setLoading(false));
     }, [data]);
 
     if (loading) return <div className="content-wrapper" style={{ padding: 24 }}>Loading report…</div>;
-    if (!data) return <div className="content-wrapper" style={{ padding: 24 }}>No report data. Go back and upload.</div>;
+    if (!data || !data.report) return <div className="content-wrapper" style={{ padding: 24 }}>No report data. Go back and upload.</div>;
 
     const { imageUrl, report } = data;
 
