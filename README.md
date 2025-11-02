@@ -47,3 +47,8 @@ The frontend will call the backend at VITE_API_BASE.
 
 🔑API Keys Needed
 When API is utilized: Hoppr API key is needed, add in .env
+add hoppr base
+PORT=5050
+THRESHOLD=0.5
+USE_MOCK=false 
+
