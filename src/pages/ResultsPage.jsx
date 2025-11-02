@@ -31,42 +31,44 @@ export default function ResultsPage() {
       payload?.findings ??
       "";
 
-    // Fallbacks: if models missing, try results[]
-    // inside toReport(...)
-const base = hopprModels.length
-  ? hopprModels.map((m) => {
-      const score = Number(m.score ?? 0);
-      const threshold = Number(m.threshold ?? 0.5);
-      const heatmapUrl = m.heatmap?.url ?? null;
+    // --- Build findings array (prefer HOPPR models, else results[]) ---
+    const base = hopprModels.length
+      ? hopprModels.map((m) => {
+          const score = Number(m.score ?? 0);
+          const threshold = Number(m.threshold ?? 0.5);
+          const heatmapUrl = m.heatmap?.url ?? null;
 
-      return {
-        name: m.label ?? prettyLabelFromModelId(m.id),
-        score,
-        positive: typeof m.positive === "boolean" ? m.positive : score >= threshold,
-        modelId: m.id ?? m.model ?? "unknown-model",
-        threshold,
-        heatmapUrl,
+          return {
+            name: m.label ?? prettyLabelFromModelId(m.id),
+            score,
+            positive: typeof m.positive === "boolean" ? m.positive : score >= threshold,
+            modelId: m.id ?? m.model ?? "unknown-model",
+            threshold,
+            heatmapUrl,
 
-        // 👇 these are aliases that your FindingsList uses for display
-        confidence: score,
-        percent: Math.round(score * 100),
-        locs: heatmapUrl ? 1 : 0,
-      };
-    })
+            // aliases used by FindingsList
+            confidence: score,
+            percent: Math.round(score * 100),
+            locs: heatmapUrl ? 1 : 0,
+          };
+        })
+      : (payload?.results || []).map((r) => {
+          const score = Number(r.score ?? r.confidence ?? 0);
+          const threshold = Number(r.threshold ?? 0.5);
+          const heatmapUrl = r.heatmapUrl ?? null;
+          return {
+            name: r.label ?? r.name ?? "Unknown",
+            score,
+            positive: typeof r.positive === "boolean" ? r.positive : score >= threshold,
+            modelId: r.modelId ?? r.model ?? "unknown-model",
+            threshold,
+            heatmapUrl,
 
-  : (payload?.results || []).map((r) => {
-      const score = Number(r.score ?? r.confidence ?? 0);
-      const threshold = Number(r.threshold ?? 0.5);
-      const heatmapUrl = r.heatmapUrl ?? null;
-      return {
-        name: r.label ?? r.name ?? "Unknown",
-        score,
-        positive: typeof r.positive === "boolean" ? r.positive : score >= threshold,
-        modelId: r.modelId ?? r.model ?? "unknown-model",
-        threshold,
-        heatmapUrl,
-      };
-    });
+            confidence: score,
+            percent: Math.round(score * 100),
+            locs: heatmapUrl ? 1 : 0,
+          };
+        });
 
     const positives = base.filter((x) => x.positive);
     const triage = positives.length ? "Review promptly" : "Routine";
@@ -83,6 +85,9 @@ const base = hopprModels.length
       state?.imageUrl ??
       null;
 
+    // NEW: care advice from backend (if present)
+    const careAdvice = payload?.careAdvice || null;
+
     return {
       studyId: payload.studyId ?? studyId ?? null,
       fileName: payload?.meta?.fileName ?? state?.fileName ?? null,
@@ -91,6 +96,7 @@ const base = hopprModels.length
       overallImpression,
       findingsText: vlmFindings,
       findings: base,
+      careAdvice, // <-- added
     };
   };
 
@@ -124,6 +130,7 @@ const base = hopprModels.length
             { name: "Pleural Effusion", score: 0.72, positive: true, modelId: "clf-2" },
             { name: "Pneumonia",        score: 0.18, positive: false, modelId: "clf-1" },
           ],
+          careAdvice: null,
         });
       } finally {
         setLoading(false);
@@ -191,6 +198,32 @@ const base = hopprModels.length
             </>
           )}
         </div>
+
+        {/* NEW: Next steps card (care advice) */}
+        {report?.careAdvice && (
+          <div className="panel-card">
+            <h3 style={{ marginTop: 0 }}>Next steps</h3>
+            <p style={{ margin: "6px 0 10px" }}>
+              <strong>Urgency:</strong>{" "}
+              <span style={{
+                padding: "2px 8px",
+                borderRadius: 999,
+                border: "1px solid #444",
+                textTransform: "capitalize"
+              }}>
+                {report.careAdvice.urgency}
+              </span>
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {report.careAdvice.referrals.map((r, i) => (
+                <li key={i}><strong>{r.type}</strong> — {r.reason}</li>
+              ))}
+            </ul>
+            <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+
+            </div>
+          </div>
+        )}
 
         {FindingsList ? (
           <FindingsList findings={report?.findings || []} />

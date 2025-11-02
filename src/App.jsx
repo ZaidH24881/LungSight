@@ -10,14 +10,7 @@ import ComparePage from "./pages/ComparePage";
 function App() {
   return (
     <BrowserRouter>
-      {/*
-      🔹 Header temporarily disabled
-      <header className="app-header">
-        <div className="container header-inner">
-          <Link to="/" className="brand">Hackathon X-Ray</Link>
-        </div>
-      </header>
-      */}
+     
 
       <main className="app-main centered">
         <div className="content-wrapper">
@@ -30,7 +23,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        © 2025 Hackathon X-Ray — Accelerating healthcare through AI.
+        © 2025 LungSight — Accelerating healthcare through AI.
       </footer>
     </BrowserRouter>
   );

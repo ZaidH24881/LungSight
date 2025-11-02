@@ -1,18 +1,19 @@
 // src/pages/ComparePage.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { analyzeXray, runAll } from "../lib/api";
+import { buildAndSavePdfCompare } from "../lib/pdf";
 import CompareViewer from "../ui/CompareViewer";
 
 export default function ComparePage() {
-  const { state } = useLocation(); // expecting { left: {studyId, fileName, imageUrl} }
+  const { state } = useLocation(); // { left: {studyId, fileName, imageUrl} }
+  const navigate = useNavigate();
   const [left, setLeft] = useState(null);
   const [right, setRight] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const inputRef = useRef(null);
 
-  // Load LEFT (existing study)
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -45,11 +46,8 @@ export default function ComparePage() {
     setErr(null);
     setLoading(true);
     try {
-      // 1) upload right file -> studyId
       const analyzed = await analyzeXray({ file: f });
-      // 2) fetch right results
       const payload = await runAll(analyzed.studyId);
-
       setRight({
         studyId: payload.studyId,
         fileName: analyzed.fileName ?? f.name,
@@ -62,9 +60,17 @@ export default function ComparePage() {
       setErr(e?.message || "Failed to load right study.");
     } finally {
       setLoading(false);
-      // clear input so same file can be selected again if needed
       if (inputRef.current) inputRef.current.value = "";
     }
+  }
+
+  async function onDownloadComparePdf() {
+    await buildAndSavePdfCompare({ left, right });
+  }
+
+  function onNewImage() {
+    navigate("/", { replace: true });
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   return (
@@ -82,6 +88,14 @@ export default function ComparePage() {
             style={{ display: "none" }}
           />
         </label>
+
+        <button className="btn btn-primary" onClick={onDownloadComparePdf} disabled={!left}>
+          Download PDF
+        </button>
+
+        <button className="btn btn-secondary" onClick={onNewImage}>
+          New Image
+        </button>
 
         {loading && <span style={{ color: "#666" }}>Loading…</span>}
         {err && <span style={{ color: "#b91c1c" }}>{err}</span>}

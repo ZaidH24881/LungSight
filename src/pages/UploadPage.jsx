@@ -67,7 +67,7 @@ export default function UploadPage() {
   return (
     <>
       <section className="hero">
-        <h1>Get AI-assisted X-ray analysis</h1>
+        <h1>LUNGSIGHT</h1>
         <p>
           Quickly analyze chest X-rays with an explainable, clinician-oriented assistant.
           Upload a de-identified scan to get model-identified findings, confidence scores, and
@@ -148,7 +148,7 @@ export default function UploadPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M5 13l4 4L19 7" stroke="#9f7aea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>{" "}
-            Grad-CAM-style heatmaps highlighting regions of interest
+            Heatmaps highlighting regions of interest
           </div>
           <div className="feature">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">

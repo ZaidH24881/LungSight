@@ -9,6 +9,7 @@ export default function CompareViewer({ left, right }) {
         <Header block="Left" item={left} />
         <ImageBlock item={left} />
         <FindingsBlock item={left} />
+        <NextSteps item={left} />
       </div>
 
       {/* Right */}
@@ -16,6 +17,7 @@ export default function CompareViewer({ left, right }) {
         <Header block="Right" item={right} />
         <ImageBlock item={right} />
         <FindingsBlock item={right} />
+        <NextSteps item={right} />
       </div>
     </div>
   );
@@ -70,7 +72,7 @@ function FindingsBlock({ item }) {
               <tr key={i} style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                 <td style={{ padding: "8px 4px" }}>{r.name}</td>
                 <td style={{ padding: "8px 4px" }}>{(r.score * 100).toFixed(0)}%</td>
-                <td style={{ padding: "8px 4px" }}>{r.positive ? "✅" : "—"}</td>
+                <td style={{ padding: "8px 4px" }}>{r.positive ? "⚠️" : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -79,6 +81,31 @@ function FindingsBlock({ item }) {
       {item?.findingsText && (
         <p style={{ marginTop: 12, color: "#bbb" }}>{item.findingsText}</p>
       )}
+    </div>
+  );
+}
+
+function NextSteps({ item }) {
+  if (!item?.careAdvice) return null;
+  return (
+    <div className="panel-card" style={{ marginTop: 12 }}>
+      <h3 style={{ marginTop: 0 }}>Next steps</h3>
+      <p style={{ margin: "6px 0 10px" }}>
+        <strong>Urgency:</strong>{" "}
+        <span style={{
+          padding: "2px 8px",
+          borderRadius: 999,
+          border: "1px solid #444",
+          textTransform: "capitalize"
+        }}>
+          {item.careAdvice.urgency}
+        </span>
+      </p>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        {item.careAdvice.referrals.map((r, i) => (
+          <li key={i}><strong>{r.type}</strong> — {r.reason}</li>
+        ))}
+      </ul>
     </div>
   );
 }

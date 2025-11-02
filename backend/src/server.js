@@ -1,5 +1,4 @@
 // server.js
-// Mock-only backend for Hackathon X-Ray (no external APIs), HOPPR-like payloads.
 
 const express = require("express");
 const cors = require("cors");
@@ -11,10 +10,11 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// ---- Static serving ----
 function firstExistingDir(candidates) {
   for (const p of candidates) {
     try { if (fs.existsSync(p)) return p; } catch {}
@@ -28,10 +28,8 @@ const STATIC_DIR = firstExistingDir([
 ]);
 app.use("/static", cors(), express.static(STATIC_DIR));
 
-// ---- Uploads in memory ----
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ---- Filename → studyId mapping ----
 const knownFilesToStudy = {
   "07d82e7e5749cbc21633134f489a7fbf.dcm": "study_calc_01",
   "c341b3f8a0353bab2ec49147b97ce9d0.dcm": "study_calc_02",
@@ -41,7 +39,6 @@ const knownFilesToStudy = {
 };
 const STUDY_IDS = Object.values(knownFilesToStudy);
 
-// ---- Base mock scores (we’ll enrich to HOPPR-like on the fly) ----
 const BASE = {
   study_calc_01: {
     vlmFindings:
@@ -100,7 +97,96 @@ const BASE = {
   },
 };
 
-// ---- Helpers ----
+function labelToSpecialist(label) {
+  switch (label) {
+    case "pneumothorax":                return "Emergency Medicine";
+    case "pleural_effusion":            return "Pulmonologist";
+    case "consolidation":               return "Pulmonologist";
+    case "interstitial_patterns":
+    case "fibrosis":
+    case "emphysema":                   return "Pulmonologist";
+    case "cardiomegaly":
+    case "edema":
+    case "calcification":               return "Cardiologist";
+    default:                            return "Primary Care";
+  }
+}
+
+
+function urgencyFor(label, score) {
+  
+  const s = Number(score || 0);
+
+  
+  if (label === "pneumothorax") {
+    if (s >= 0.50) return "immediate";
+    if (s >= 0.30) return "urgent";        
+  }
+
+
+  if (label === "pleural_effusion") {
+    if (s >= 0.70) return "urgent";
+    if (s >= 0.50) return "routine";       
+  }
+  if (label === "consolidation") {
+    if (s >= 0.60) return "urgent";        
+  }
+  if (label === "interstitial_patterns" || label === "fibrosis") {
+    if (s >= 0.75) return "urgent";
+  }
+  if (label === "emphysema") {
+    if (s >= 0.80) return "urgent";
+  }
+
+ 
+  if (label === "edema") {
+    if (s >= 0.60) return "urgent";
+  }
+  if (label === "cardiomegaly") {
+    if (s >= 0.70) return "urgent";
+  }
+  if (label === "calcification") {
+    if (s >= 0.85) return "urgent";        
+  }
+
+  
+  return "routine";
+}
+
+function buildCareAdvice(models) {
+
+  const positives = models
+    .filter(m => Number(m.score || 0) >= Number(m.threshold ?? 0.5))
+    .sort((a, b) => b.score - a.score);
+
+  if (!positives.length) {
+    return { urgency: "routine", referrals: [{ type: "Primary Care", reason: "No high-probability findings" }] };
+  }
+
+  const rank = { routine: 0, urgent: 1, immediate: 2 };
+  let overall = "routine";
+
+  const referrals = positives.map(m => {
+    const u = urgencyFor(m.label, Number(m.score || 0));
+    if (rank[u] > rank[overall]) overall = u;
+    return {
+      type: labelToSpecialist(m.label),
+      reason: `${m.label.replace(/_/g, " ")} ${Math.round(Number(m.score || 0) * 100)}%`,
+      urgency: u,
+    };
+  });
+
+
+  const best = new Map();
+  for (const r of referrals) {
+    const prev = best.get(r.type);
+    if (!prev || rank[r.urgency] > rank[prev.urgency]) best.set(r.type, r);
+  }
+
+  return { urgency: overall, referrals: Array.from(best.values()) };
+}
+
+
 function pickStudyIdFromUnknown(buf) {
   const h = crypto.createHash("md5").update(buf).digest("hex");
   const all = Object.keys(BASE);
@@ -114,14 +200,14 @@ function previewUrl(req, studyId) {
   return `${req.protocol}://${req.get("host")}/static/studies/${studyId}.png`;
 }
 function heatmapUrl(req, studyId, label) {
-  // optional file: public/heatmaps/<studyId>/<label>.png
+
   const p = path.join(STATIC_DIR, "heatmaps", studyId, `${label}.png`);
   return fs.existsSync(p)
     ? `${req.protocol}://${req.get("host")}/static/heatmaps/${studyId}/${label}.png`
     : null;
 }
 function parseModelId(id) {
-  // "mc_chestradiography_consolidation:v1.20250828"
+  
   const [left, version = "v1"] = id.split(":");
   let label = left;
   const marker = "_chestradiography_";
@@ -132,6 +218,7 @@ function toHopprPayload(req, studyId, fileName) {
   const base = BASE[studyId];
   const uploadedAt = new Date().toISOString();
 
+ 
   const hopprModels = base.models.map((pair) => {
     const [id, scoreStr] = pair.split("|");
     const { label, version } = parseModelId(id);
@@ -139,21 +226,31 @@ function toHopprPayload(req, studyId, fileName) {
     const threshold = 0.5;
     const positive = score >= threshold;
     return {
-      id,                 // full model id
-      label,              // parsed condition label
-      version,            // parsed version from id
-      score,              // probability [0..1]
-      threshold,          // default for demo
+      id,            
+      label,              
+      version,           
+      score,              
+      threshold,          
       positive,           // score >= threshold
       heatmap: {
         type: "png",
-        url: heatmapUrl(req, studyId, label), // can be null if you didn't add a file
+        url: heatmapUrl(req, studyId, label), 
       },
     };
   });
 
+  
+  const careAdvice = buildCareAdvice(
+    hopprModels.map(m => ({
+      label: m.label,
+      score: m.score,
+      threshold: m.threshold,
+    }))
+  );
+
+
   const payload = {
-    // ===== HOPPR-like top-level fields =====
+
     studyId,
     meta: {
       fileName: fileName || null,
@@ -170,10 +267,13 @@ function toHopprPayload(req, studyId, fileName) {
       model: "cxr-vlm-experimental",
       version: "v0",
       findings: base.vlmFindings,
-      grounding: [], // optional spans/regions (not used in mock)
+      grounding: [], // mock
     },
 
-    // ===== Backwards-compatible extras for your current UI =====
+
+    careAdvice,
+
+
     findings: base.vlmFindings,
     results: hopprModels.map((m) => ({
       label: m.label,
@@ -190,12 +290,13 @@ function toHopprPayload(req, studyId, fileName) {
   return payload;
 }
 
-// ---- Routes ----
+
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, mode: "mock", staticDir: STATIC_DIR, studies: Object.keys(BASE).length });
 });
 
-/** Upload → map filename → studyId, return HOPPR-like stub + UI extras */
+
 app.post("/api/analyze-xray", upload.single("file"), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded (field name must be 'file')." });
@@ -208,7 +309,7 @@ app.post("/api/analyze-xray", upload.single("file"), (req, res) => {
   }
 });
 
-/** Return full HOPPR-like payload (plus UI extras) */
+
 app.get("/api/run-all", (req, res) => {
   try {
     const studyId = (req.query.studyId || req.query.id || "").toString();
@@ -222,7 +323,7 @@ app.get("/api/run-all", (req, res) => {
   }
 });
 
-// Debug (optional): check preview + heatmaps
+
 app.get("/debug/study", (req, res) => {
   const studyId = (req.query.studyId || "").toString();
   const prev = path.join(STATIC_DIR, "studies", `${studyId}.png`);
