@@ -1,36 +1,36 @@
+// src/App.jsx
 import React from "react";
-import "./App.css"; // make sure this exists
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./App.css";
+
+import UploadPage from "./pages/UploadPage";
+import ResultsPage from "./pages/ResultsPage";
 
 function App() {
   return (
-    <div>
-      {/* 🔹 Top Bar */}
-      <header
-        style={{
-          backgroundColor: "#7C3AED",
-          color: "white",
-          padding: "1rem 2rem",
-          textAlign: "left",
-          fontSize: "1.5rem",
-          fontWeight: "bold",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-          zIndex: 10,
-        }}
-      >
-        Hackathon X-Ray
+    <BrowserRouter>
+      {/*
+      🔹 Header temporarily disabled
+      <header className="app-header">
+        <div className="container header-inner">
+          <Link to="/" className="brand">Hackathon X-Ray</Link>
+        </div>
       </header>
+      */}
 
-      {/* 🔹 Main Content */}
-      <div style={{ textAlign: "center", marginTop: "6rem" }}>
-        <h1>Welcome to Hackathon X-Ray</h1>
-        <p>Your AI-powered medical imaging app starts here.</p>
-        <button> Upload X-Ray</button>
-      </div>
-    </div>
+      <main className="app-main centered">
+        <div className="content-wrapper">
+          <Routes>
+            <Route path="/" element={<UploadPage />} />
+            <Route path="/results/:id" element={<ResultsPage />} />
+          </Routes>
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        © 2025 Hackathon X-Ray — Accelerating healthcare through AI.
+      </footer>
+    </BrowserRouter>
   );
 }
 
