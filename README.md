@@ -1,16 +1,49 @@
-# React + Vite
+# LungSight
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Simple end-to-end demo of an AI medical-imaging workflow using a React (Vite) frontend and a mock Express backend that mimics HOPPR’s API responses.
 
-Currently, two official plugins are available:
+✨ Features
+Upload or select from the 4 sample X-ray images provided in sample DICOM data: https://drive.google.com/file/d/1XGdT2I6-KdCYFdnDK-ZWP7VLyIA27vn3/view
+  Chose from these 4 to upload:
+- HackathonSampleDICOMImages/Calcification/train/07d82e7e5749cbc21633134f489a7fbf.dcm
+- HackathonSampleDICOMImages/Calcification/train/17dc4a83558d835efd5f7d6f110f07f3.dcm
+- HackathonSampleDICOMImages/Calcification/train/c341b3f8a0353bab2ec49147b97ce9d0.dcm
+- HackathonSampleDICOMImages/Consolidation/train/de7c0acddd7ed5fb90f5f5e12458235b.dcm
+  
+Mock AI x-ray analysis that is  returned in HOPPR-like JSON
+Optional UI bits: findings list, urgency type, heatmap overlay
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+💻 Tech Stack
+Frontend
+React + Vite
+React Router
+Tailwind / UI components 
 
-## React Compiler
+Backend
+Node.js + Express
+multer
+cors
+crypto, path, fs (utils)
+Static file server for sample images
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+🔧 Setup & Run
+1) Install dependencies
+From the project root:
+npm install
+cd backend && npm install && cd ..
+If you keep a single package.json at the root that includes express, multer, etc., one npm install is enough.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2) Start the backend 
+# If backend is at ./backend/server.js
+node backend/server.js
+
+
+3) Start the frontend (Vite)
+npm run dev
+Vite will print a local URL (usually http://localhost:5173).
+The frontend will call the backend at VITE_API_BASE.
+
+
+🔑API Keys Needed
+When API is utilized: Hoppr API key is needed, add in .env
