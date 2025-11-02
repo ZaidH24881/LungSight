@@ -60,7 +60,7 @@ export default function ResultsPage() {
                                     setComparison(null);
                                 }} style={{ fontSize: 12 }}>Remove</button>
                             </div>
-                            <HeatmapOverlay imageUrl={comparison.imageUrl} findings={comparison.report.findings} />
+                            <HeatmapOverlay imageUrl={comparison?.imageUrl} findings={comparison?.report?.findings || []} />
                         </div>
                     </div>
                 )}
