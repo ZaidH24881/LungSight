@@ -1,104 +1,224 @@
+// src/pages/ResultsPage.jsx
 import { useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import HeatmapOverlay from "../ui/HeatmapOverlay";
-import FindingsList from "../ui/FindingsList";
-import ReportActions from "../ui/ReportActions";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { runAll } from "../lib/api";
+
+// Optional UI components (if you have them)
+let HeatmapOverlay, FindingsList, ReportActions;
+try { HeatmapOverlay = (await import("../ui/HeatmapOverlay")).default; } catch {}
+try { FindingsList = (await import("../ui/FindingsList")).default; } catch {}
+try { ReportActions = (await import("../ui/ReportActions")).default; } catch {}
 
 export default function ResultsPage() {
-    const { state } = useLocation(); // { id, imageUrl, report }
-    const [data, setData] = useState(state && state.imageUrl ? {
-        imageUrl: state.imageUrl,
-        fileName: state.fileName,
-        report: null,
-        id: state.id || null
-    } : null);
-    const [loading, setLoading] = useState(false);
-    const [comparison, setComparison] = useState(null);
-    const fileInputRef = useRef(null);
+  const { state } = useLocation(); // { imageUrl, fileName, id }
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState(null);
 
-    // If router didn't pass state (working offline / waiting backend), load mock report
-    useEffect(() => {
-        // If we already have report, don't fetch
-        if (data && data.report) return;
+  // prevent double fetch in React 18 StrictMode
+  const fetchedRef = useRef(false);
+
+  const studyId = state?.id ?? state?.studyId ?? null;
+
+  // Map HOPPR-style payload -> UI report
+  const toReport = (payload) => {
+    if (!payload) return null;
+
+    // Prefer HOPPR fields
+    const hopprModels = Array.isArray(payload.models) ? payload.models : [];
+    const vlmFindings =
+      payload?.vlm?.findings ??
+      payload?.findings ??
+      "";
+
+    // Fallbacks: if models missing, try results[]
+    // inside toReport(...)
+const base = hopprModels.length
+  ? hopprModels.map((m) => {
+      const score = Number(m.score ?? 0);
+      const threshold = Number(m.threshold ?? 0.5);
+      const heatmapUrl = m.heatmap?.url ?? null;
+
+      return {
+        name: m.label ?? prettyLabelFromModelId(m.id),
+        score,
+        positive: typeof m.positive === "boolean" ? m.positive : score >= threshold,
+        modelId: m.id ?? m.model ?? "unknown-model",
+        threshold,
+        heatmapUrl,
+
+        // 👇 these are aliases that your FindingsList uses for display
+        confidence: score,
+        percent: Math.round(score * 100),
+        locs: heatmapUrl ? 1 : 0,
+      };
+    })
+
+  : (payload?.results || []).map((r) => {
+      const score = Number(r.score ?? r.confidence ?? 0);
+      const threshold = Number(r.threshold ?? 0.5);
+      const heatmapUrl = r.heatmapUrl ?? null;
+      return {
+        name: r.label ?? r.name ?? "Unknown",
+        score,
+        positive: typeof r.positive === "boolean" ? r.positive : score >= threshold,
+        modelId: r.modelId ?? r.model ?? "unknown-model",
+        threshold,
+        heatmapUrl,
+      };
+    });
+
+    const positives = base.filter((x) => x.positive);
+    const triage = positives.length ? "Review promptly" : "Routine";
+    const overallImpression = positives.length
+      ? `Possible findings: ${positives
+          .map((p) => `${p.name} (${(p.score || 0).toFixed(2)})`)
+          .join(", ")}.`
+      : "No significant findings detected.";
+
+    // Prefer backend preview URL; else use state.imageUrl
+    const imageUrl =
+      payload?.meta?.preview?.url ??
+      payload?.imageUrl ??
+      state?.imageUrl ??
+      null;
+
+    return {
+      studyId: payload.studyId ?? studyId ?? null,
+      fileName: payload?.meta?.fileName ?? state?.fileName ?? null,
+      imageUrl,
+      triage,
+      overallImpression,
+      findingsText: vlmFindings,
+      findings: base,
+    };
+  };
+
+  function prettyLabelFromModelId(id = "") {
+    const marker = "_chestradiography_";
+    const mid = id.includes(marker) ? id.split(marker)[1] : id;
+    return (mid.split(":")[0] || id).replace(/_/g, " ");
+  }
+
+  useEffect(() => {
+    if (!studyId || fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    (async () => {
+      try {
         setLoading(true);
-        fetch("/mock-report.json")
-            .then((r) => r.json())
-            .then((json) => {
-                setData(prev => ({
-                    ...prev,
-                    report: json.report,
-                    // Only use mock imageUrl if we don't already have one (i.e., not user upload)
-                    imageUrl: prev && prev.imageUrl ? prev.imageUrl : json.imageUrl,
-                    id: prev && prev.id ? prev.id : json.id
-                }));
-            })
-            .catch((err) => console.warn("Failed to load mock report:", err))
-            .finally(() => setLoading(false));
-    }, [data]);
+        setErrMsg(null);
+        const raw = await runAll(studyId);
+        setReport(toReport(raw));
+      } catch (e) {
+        setErrMsg("Backend unavailable — using fallback mock.");
+        setReport({
+          studyId,
+          fileName: state?.fileName ?? null,
+          imageUrl: state?.imageUrl ?? null,
+          triage: "Review promptly",
+          overallImpression: "Possible findings: Pleural Effusion (0.72).",
+          findingsText:
+            "Right blunting of the costophrenic angle suggests small effusion.",
+          findings: [
+            { name: "Pleural Effusion", score: 0.72, positive: true, modelId: "clf-2" },
+            { name: "Pneumonia",        score: 0.18, positive: false, modelId: "clf-1" },
+          ],
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studyId]);
 
-    if (loading) return <div className="content-wrapper" style={{ padding: 24 }}>Loading report…</div>;
-    if (!data || !data.report) return <div className="content-wrapper" style={{ padding: 24 }}>No report data. Go back and upload.</div>;
+  // --- Render ---
 
-    const { imageUrl, report } = data;
-
+  if (!studyId) {
     return (
-        <div className="results-grid content-wrapper">
-            <div className="panel-card left-panel">
-                {!comparison ? (
-                    <HeatmapOverlay imageUrl={imageUrl} findings={report.findings} />
-                ) : (
-                    <div className="comparison-grid">
-                        <div className="compare-card">
-                            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Primary</div>
-                            <HeatmapOverlay imageUrl={imageUrl} findings={report.findings} />
-                        </div>
-                        <div className="compare-card">
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                                <div style={{ fontSize: 12, color: "var(--muted)" }}>Comparison</div>
-                                <button onClick={() => {
-                                    URL.revokeObjectURL(comparison?.objectUrl || "");
-                                    setComparison(null);
-                                }} style={{ fontSize: 12 }}>Remove</button>
-                            </div>
-                            <HeatmapOverlay imageUrl={comparison?.imageUrl} findings={comparison?.report?.findings || []} />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="right-panel">
-                <div className="panel-card impression-card">
-                    <h2 style={{ marginTop: 0 }}>Impression</h2>
-                    <p><strong>Triage:</strong> {report.triage}</p>
-                    <p>{report.overallImpression}</p>
-                </div>
-
-                <FindingsList findings={report.findings} />
-
-                <div className="panel-card actions-card">
-                    <ReportActions report={report} data={data} />
-                    <div style={{ marginLeft: 8 }}>
-                        <input ref={fileInputRef} type="file" accept="image/*" id="compare-input" style={{ display: 'none' }} onChange={async (e) => {
-                            const file = e.target.files && e.target.files[0];
-                            if (!file) return;
-                            // create object URL for preview
-                            const objectUrl = URL.createObjectURL(file);
-                            // fetch mock report for the new image
-                            try {
-                                const r = await fetch('/mock-report.json');
-                                const json = await r.json();
-                                const adapted = { imageUrl: objectUrl, report: json.report, id: `cmp-${Date.now()}`, objectUrl };
-                                setComparison(adapted);
-                            } catch (err) {
-                                console.warn('Failed to get mock report for comparison', err);
-                                const adapted = { imageUrl: objectUrl, report: { findings: [] }, id: `cmp-${Date.now()}`, objectUrl };
-                                setComparison(adapted);
-                            }
-                        }} />
-                        <button style={{ marginLeft: 8 }} onClick={() => fileInputRef.current?.click()}>Compare another image</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="content-wrapper" style={{ padding: 24 }}>
+        <h2>No study to show</h2>
+        <p>Go back and upload an image.</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="results-grid content-wrapper" style={{ paddingTop: 12 }}>
+      {/* Top bar / debug */}
+      <div className="panel-card" style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div><strong>Study ID:</strong> <code>{studyId}</code></div>
+          {loading && <span style={{ color: "#666" }}>Fetching…</span>}
+          {errMsg && <span style={{ color: "#b91c1c" }}>{errMsg}</span>}
+        </div>
+      </div>
+
+      {/* Left panel: image + (optional) overlay */}
+      <div className="panel-card left-panel">
+        <div style={{ marginBottom: 8, color: "#666" }}>
+          {report?.fileName ? `File: ${report.fileName}` : state?.fileName ? `File: ${state.fileName}` : "No file name"}
+        </div>
+
+        {HeatmapOverlay ? (
+          <HeatmapOverlay imageUrl={report?.imageUrl} findings={report?.findings || []} />
+        ) : (
+          <div style={{ borderRadius: 8, overflow: "hidden", background: "#111" }}>
+            {report?.imageUrl ? (
+              <img
+                src={report.imageUrl}
+                alt="Chest X-ray"
+                style={{ width: "100%", maxHeight: 520, objectFit: "contain", display: "block" }}
+              />
+            ) : (
+              <div style={{ padding: 24, color: "#888" }}>No image available</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Right panel */}
+      <div className="right-panel">
+        <div className="panel-card impression-card">
+          <h2 style={{ marginTop: 0 }}>Impression</h2>
+          {!report ? (
+            <p>Waiting for results…</p>
+          ) : (
+            <>
+              <p><strong>Triage:</strong> {report.triage}</p>
+              <p>{report.overallImpression}</p>
+              {report.findingsText && <p>{report.findingsText}</p>}
+            </>
+          )}
+        </div>
+
+        {FindingsList ? (
+          <FindingsList findings={report?.findings || []} />
+        ) : (
+          <div className="panel-card">
+            <h3 style={{ marginTop: 0 }}>Findings</h3>
+            {!report?.findings?.length ? (
+              <div style={{ color: "#666" }}>None.</div>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {report.findings.map((f, i) => (
+                  <li key={i}>
+                    {f.name} — {(f.score ?? 0).toFixed(2)} {f.positive ? "✅" : "❌"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        <div className="panel-card actions-card">
+          {ReportActions ? (
+            <ReportActions report={report || {}} data={{ id: studyId, imageUrl: report?.imageUrl, fileName: report?.fileName }} />
+          ) : (
+            <div style={{ color: "#666" }}>Actions go here</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

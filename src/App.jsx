@@ -5,6 +5,7 @@ import "./App.css";
 
 import UploadPage from "./pages/UploadPage";
 import ResultsPage from "./pages/ResultsPage";
+import ComparePage from "./pages/ComparePage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Routes>
             <Route path="/" element={<UploadPage />} />
             <Route path="/results/:id" element={<ResultsPage />} />
+            <Route path="/compare" element={<ComparePage />} />
           </Routes>
         </div>
       </main>
