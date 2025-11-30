@@ -44,7 +44,7 @@ npm run dev
 Vite will print a local URL (usually http://localhost:5173).
 The frontend will call the backend at VITE_API_BASE.
 
-4) Upload Image 
+4) Upload Image, you will be able to: 
 See Data
 Compare data with another x ray
 Can print results as a PDF 
