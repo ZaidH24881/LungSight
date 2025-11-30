@@ -39,7 +39,6 @@ If you keep a single package.json at the root that includes express, multer, etc
 # If backend is at ./backend/server.js
 node backend/server.js
 
-
 3) Start the frontend (Vite)
 npm run dev
 Vite will print a local URL (usually http://localhost:5173).
