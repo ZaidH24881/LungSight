@@ -1,6 +1,7 @@
 # LungSight
 
 Simple end-to-end demo of an AI medical-imaging workflow using a React (Vite) frontend and a mock Express backend that mimics HOPPR’s API responses.
+Video Demo: https://youtu.be/-at1aA8YM_0
 
 ✨ Features
 Upload or select from the 4 sample X-ray images provided in sample DICOM data: https://drive.google.com/file/d/1XGdT2I6-KdCYFdnDK-ZWP7VLyIA27vn3/view
