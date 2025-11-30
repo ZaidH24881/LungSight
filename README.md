@@ -45,6 +45,13 @@ npm run dev
 Vite will print a local URL (usually http://localhost:5173).
 The frontend will call the backend at VITE_API_BASE.
 
+4) Upload Image 
+See Data
+Compare data with another x ray
+Can print results as a PDF 
+
+
+
 
 🔑API Keys Needed
 When API is utilized: Hoppr API key is needed, add in .env
