@@ -1,4 +1,5 @@
 # LungSight
+*MTCUIUC Hackathon Winning Project*
 
 Simple end-to-end demo of an AI medical-imaging workflow using a React (Vite) frontend and a mock Express backend that mimics HOPPR’s API responses.
 Video Demo: https://youtu.be/-at1aA8YM_0
